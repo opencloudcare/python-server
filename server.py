@@ -1,3 +1,4 @@
+import json
 import pymupdf
 from flask import Flask, request
 
@@ -10,10 +11,10 @@ def health():
 
 @app.route("/api/redact", methods=["POST"])
 def redact():
-    search_terms = ["Faculty", "Con vivo", "roger zare"]
-    file = request.data
-    filetype = request.content_type.split("/")[-1]  # e.g. "application/pdf" → "pdf"
-    doc = pymupdf.Document(stream=file, filetype=filetype)
+    search_terms = json.loads(request.form["search_terms"])
+    file = request.files["file"]
+    filetype = file.content_type.split("/")[-1]  # e.g. "application/pdf" → "pdf"
+    doc = pymupdf.Document(stream=file.read(), filetype=filetype)
     print(f"Pages: {len(doc)}")
     print(f"Metadata: {doc.metadata}")
 
@@ -25,4 +26,4 @@ def redact():
         page.apply_redactions()
 
 
-    return doc.tobytes(), 200, {"Content-Type": request.content_type}
+    return doc.tobytes(), 200, {"Content-Type": file.content_type}
