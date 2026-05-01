@@ -1,8 +1,24 @@
 import json
+import os
+from functools import wraps
 import pymupdf
-from flask import Flask, request
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
+API_KEY = os.environ.get("API_KEY")
+
+# protect the endpoint so only our server can make requests
+def require_api_key(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        api_key = request.headers.get("X-Api-Key")
+        if api_key != API_KEY:
+            print("Invalid API Key")
+            return jsonify({'error': "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
 
 
 @app.route("/health", methods=["GET"])
@@ -10,6 +26,7 @@ def health():
     return {"health": "ok"}
 
 @app.route("/api/redact", methods=["POST"])
+@require_api_key
 def redact():
     search_terms = json.loads(request.form["search_terms"])
     file = request.files["file"]
