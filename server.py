@@ -35,6 +35,12 @@ def redact():
     print(f"Pages: {len(doc)}")
     print(f"Metadata: {doc.metadata}")
 
+    is_image = not doc.is_pdf # convert images to pdf
+    if is_image:
+        pdf_bytes = doc.convert_to_pdf()
+        doc.close()
+        doc = pymupdf.Document(stream=pdf_bytes, filetype="pdf")
+
     for page in doc:
         for term in search_terms:
             areas = page.search_for(term)
@@ -42,5 +48,8 @@ def redact():
                 page.add_redact_annot(rect, fill=(0,0,0))
         page.apply_redactions()
 
+    if is_image: # convert back to image
+        pixmap = doc[0].get_pixmap()
+        return pixmap.tobytes(filetype), 200, {"Content-Type": file.content_type}
 
     return doc.tobytes(), 200, {"Content-Type": file.content_type}
